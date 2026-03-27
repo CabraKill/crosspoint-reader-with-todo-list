@@ -17,8 +17,6 @@
 namespace {
 // Todo list file path on SD card
 constexpr char TODO_FILE_PATH[] = "/.crosspoint/todos.txt";
-// QR code placeholder URL (device IP will be appended as ?ip=<ip>)
-constexpr char TODO_QR_BASE_URL[] = "http://todo.crosspoint.local/";
 // Icon size for the QR icon button
 constexpr int QR_ICON_SIZE = 32;
 // Padding used when drawing items
@@ -71,6 +69,26 @@ bool TodoListActivity::loadTodos(std::vector<TodoItem>& todos) {
   return true;
 }
 
+bool TodoListActivity::saveTodos(const std::vector<TodoItem>& todos) {
+  Storage.ensureDirectoryExists("/.crosspoint");
+  // Reserve ~50 bytes per item (name + "|0\n") to avoid repeated reallocations
+  String content;
+  content.reserve(todos.size() * 50);
+  for (const auto& item : todos) {
+    for (char c : item.name) {
+      if (c != '|' && c != '\n' && c != '\r') content += c;
+    }
+    content += '|';
+    content += (item.done ? '1' : '0');
+    content += '\n';
+  }
+  if (!Storage.writeFile(TODO_FILE_PATH, content)) {
+    LOG_ERR("TODO", "Failed to save todos");
+    return false;
+  }
+  return true;
+}
+
 int TodoListActivity::getTotalItems() const {
   // 1 for QR icon row + number of todo items
   return 1 + static_cast<int>(todos.size());
@@ -110,12 +128,18 @@ void TodoListActivity::loop() {
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     if (selectorIndex == 0) {
       onShowQrCode();
+    } else {
+      const int todoIdx = selectorIndex - 1;
+      if (todoIdx < static_cast<int>(todos.size())) {
+        todos[todoIdx].done = !todos[todoIdx].done;
+        saveTodos(todos);
+        requestUpdate();
+      }
     }
   }
 }
 
 void TodoListActivity::onShowQrCode() {
-  // Build placeholder URL with device IP
   char ipStr[16] = "0.0.0.0";
   if (WiFi.status() == WL_CONNECTED) {
     const IPAddress ip = WiFi.localIP();
@@ -125,11 +149,15 @@ void TodoListActivity::onShowQrCode() {
     snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   }
 
-  char url[128];
-  snprintf(url, sizeof(url), "%s?ip=%s", TODO_QR_BASE_URL, ipStr);
+  // URL format: "http://xxx.xxx.xxx.xxx/todo" — max 28 bytes, 64 is ample
+  char url[64];
+  snprintf(url, sizeof(url), "http://%s/todo", ipStr);
 
   startActivityForResult(std::make_unique<QrDisplayActivity>(renderer, mappedInput, std::string(url)),
-                         [this](const ActivityResult&) { requestUpdate(); });
+                         [this](const ActivityResult&) {
+                           loadTodos(todos);  // Reload in case web edits were made
+                           requestUpdate();
+                         });
 }
 
 void TodoListActivity::render(RenderLock&&) {

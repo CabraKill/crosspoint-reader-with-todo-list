@@ -21,6 +21,8 @@ class TodoListActivity final : public Activity {
 
   // Loads todos from storage; also used by SleepActivity for the todo sleep screen.
   static bool loadTodos(std::vector<TodoItem>& todos);
+  // Saves todos to storage; also used by CrossPointWebServer for the /api/todos endpoint.
+  static bool saveTodos(const std::vector<TodoItem>& todos);
 
  private:
   ButtonNavigator buttonNavigator;

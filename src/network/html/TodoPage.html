@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrossPoint Reader - Todo List</title>
+  <style>
+    :root {
+      --font-color: #333;
+      --bg: #f5f5f5;
+      --title-color: #2c3e50;
+      --card-bg: #FFF;
+      --label-color: #7f8c8d;
+      --border-color: #eee;
+      --accent-color: rgb(110, 154, 130);
+      --accent-hover-color: #5a8c73;
+      --done-color: #27ae60;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --font-color: #f5f5f5;
+        --bg: #333;
+        --title-color: #ecf0f1;
+        --card-bg: #444;
+        --label-color: #bdc3c7;
+        --border-color: #555;
+        color-scheme: dark;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: var(--bg);
+      color: var(--font-color);
+    }
+    h1 { color: var(--title-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; }
+    h2 { color: var(--title-color); margin-top: 0; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav-links { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-links a {
+      padding: 10px 20px;
+      color: var(--font-color);
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    .nav-links a.active { background-color: var(--accent-color); color: white; }
+    .nav-links a:not(.active):hover { background-color: var(--accent-hover-color); color: white; }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent-color); cursor: pointer; }
+    .todo-name {
+      flex: 1;
+      font-size: 1em;
+      word-break: break-word;
+    }
+    .todo-name.done { text-decoration: line-through; color: var(--label-color); }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .delete-btn:hover { background-color: #fdecea; }
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .add-row input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1em;
+      background: var(--card-bg);
+      color: var(--font-color);
+    }
+    .add-btn {
+      background-color: var(--accent-color);
+      color: white;
+      padding: 8px 18px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 600;
+    }
+    .add-btn:hover { background-color: var(--accent-hover-color); }
+    .add-btn:disabled { background-color: #95a5a6; cursor: not-allowed; }
+    .message {
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin: 12px 0;
+      text-align: center;
+      display: none;
+    }
+    .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .message.error   { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .empty-hint { color: var(--label-color); text-align: center; padding: 20px 0; font-style: italic; }
+    @media (max-width: 600px) {
+      body { padding: 10px; font-size: 14px; }
+      .card { padding: 12px; margin: 10px 0; }
+      h1 { font-size: 1.3em; }
+      .nav-links a { padding: 8px 12px; font-size: 0.9em; }
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ Todo List</h1>
+
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/files">File Manager</a>
+    <a href="/settings">Settings</a>
+    <a href="/todo" class="active">Todo List</a>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="card">
+    <h2>Items</h2>
+    <div id="todo-list"></div>
+
+    <div class="add-row">
+      <input type="text" id="new-item" placeholder="Add a new item…" maxlength="200" />
+      <button class="add-btn" id="add-btn" onclick="addItem()">Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p style="text-align:center;color:#95a5a6;margin:0">CrossPoint E-Reader • Open Source</p>
+  </div>
+
+<script>
+  let todos = [];
+  let saveTimer = null;
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function showMessage(text, isError) {
+    const el = document.getElementById('message');
+    el.textContent = text;
+    el.className = 'message ' + (isError ? 'error' : 'success');
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 3000);
+  }
+
+  function renderList() {
+    const container = document.getElementById('todo-list');
+    if (todos.length === 0) {
+      container.innerHTML = '<p class="empty-hint">No items yet. Add one below!</p>';
+      return;
+    }
+    let html = '';
+    todos.forEach(function(t, i) {
+      html += '<div class="todo-item">'
+        + '<input type="checkbox" id="chk-' + i + '" ' + (t.done ? 'checked' : '') + ' onchange="toggleItem(' + i + ')">'
+        + '<label class="todo-name' + (t.done ? ' done' : '') + '" for="chk-' + i + '">' + escapeHtml(t.name) + '</label>'
+        + '<button class="delete-btn" onclick="deleteItem(' + i + ')" title="Delete">✕</button>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveTodos, 600);
+  }
+
+  function toggleItem(index) {
+    todos[index].done = !todos[index].done;
+    renderList();
+    scheduleSave();
+  }
+
+  function deleteItem(index) {
+    todos.splice(index, 1);
+    renderList();
+    scheduleSave();
+  }
+
+  function addItem() {
+    const input = document.getElementById('new-item');
+    const name = input.value.trim().replace(/[|\r\n]+/g, '');
+    if (!name) return;
+    todos.push({ name: name, done: false });
+    input.value = '';
+    renderList();
+    scheduleSave();
+  }
+
+  document.getElementById('new-item').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') addItem();
+  });
+
+  async function loadTodos() {
+    try {
+      const r = await fetch('/api/todos');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      todos = await r.json();
+      renderList();
+    } catch (e) {
+      document.getElementById('todo-list').innerHTML =
+        '<p class="empty-hint" style="color:#e74c3c">Failed to load todos</p>';
+    }
+  }
+
+  async function saveTodos() {
+    try {
+      const r = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(todos)
+      });
+      if (!r.ok) throw new Error(await r.text());
+      showMessage('Saved', false);
+    } catch (e) {
+      showMessage('Save failed: ' + e.message, true);
+    }
+  }
+
+  loadTodos();
+</script>
+</body>
+</html>
