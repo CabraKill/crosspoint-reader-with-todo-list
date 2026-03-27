@@ -27,8 +27,7 @@ class TodoListActivity final : public Activity {
  private:
   ButtonNavigator buttonNavigator;
   std::vector<TodoItem> todos;
-  int selectorIndex = 0;  // 0 = QR icon row, 1..N = todo items
+  int selectorIndex = 0;  // 0..N-1 = todo items
 
   int getTotalItems() const;
-  void onShowQrCode();
 };
