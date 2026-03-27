@@ -76,6 +76,7 @@ bool TodoListActivity::saveTodos(const std::vector<TodoItem>& todos) {
   content.reserve(todos.size() * 50);
   for (const auto& item : todos) {
     for (char c : item.name) {
+      // cppcheck-suppress useStlAlgorithm
       if (c != '|' && c != '\n' && c != '\r') content += c;
     }
     content += '|';

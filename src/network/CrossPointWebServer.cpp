@@ -1313,6 +1313,7 @@ void CrossPointWebServer::handlePostTodos() {
     const bool done = obj["done"] | false;
     // Strip '|' and newlines to preserve the name|done file format
     for (const char* p = name; *p; ++p) {
+      // cppcheck-suppress useStlAlgorithm
       if (*p != '|' && *p != '\n' && *p != '\r') content += *p;
     }
     content += '|';
