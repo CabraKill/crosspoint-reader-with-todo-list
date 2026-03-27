@@ -138,6 +138,16 @@ class CrossPointSettings {
   // Image rendering in EPUB reader
   enum IMAGE_RENDERING { IMAGES_DISPLAY = 0, IMAGES_PLACEHOLDER = 1, IMAGES_SUPPRESS = 2, IMAGE_RENDERING_COUNT };
 
+  // Scheduled wakeup interval (timer-based wakeup from deep sleep, USB power only)
+  enum SCHEDULED_WAKEUP {
+    WAKEUP_DISABLED = 0,
+    WAKEUP_30_MIN = 1,
+    WAKEUP_1_HOUR = 2,
+    WAKEUP_2_HOURS = 3,
+    WAKEUP_4_HOURS = 4,
+    SCHEDULED_WAKEUP_COUNT
+  };
+
   // Sleep screen settings
   uint8_t sleepScreen = DARK;
   // Sleep screen cover mode settings
@@ -200,6 +210,8 @@ class CrossPointSettings {
   uint8_t showHiddenFiles = 0;
   // Image rendering mode in EPUB reader
   uint8_t imageRendering = IMAGES_DISPLAY;
+  // Scheduled wakeup interval (timer-based periodic wakeup from deep sleep, functional on USB power only)
+  uint8_t scheduledWakeup = WAKEUP_DISABLED;
 
   ~CrossPointSettings() = default;
 
@@ -226,6 +238,10 @@ class CrossPointSettings {
   float getReaderLineCompression() const;
   unsigned long getSleepTimeoutMs() const;
   int getRefreshFrequency() const;
+  // Returns the scheduled wakeup interval in microseconds, or 0 if disabled.
+  // Note: timer wakeup is only functional when powered via USB; on battery the MCU is
+  // completely powered off (including RTC) and only the power button can wake the device.
+  uint64_t getScheduledWakeupIntervalUs() const;
 };
 
 // Helper macro to access settings

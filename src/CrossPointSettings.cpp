@@ -293,6 +293,22 @@ int CrossPointSettings::getRefreshFrequency() const {
   }
 }
 
+uint64_t CrossPointSettings::getScheduledWakeupIntervalUs() const {
+  switch (scheduledWakeup) {
+    case WAKEUP_30_MIN:
+      return 30ULL * 60 * 1000000;
+    case WAKEUP_1_HOUR:
+      return 1ULL * 60 * 60 * 1000000;
+    case WAKEUP_2_HOURS:
+      return 2ULL * 60 * 60 * 1000000;
+    case WAKEUP_4_HOURS:
+      return 4ULL * 60 * 60 * 1000000;
+    case WAKEUP_DISABLED:
+    default:
+      return 0;
+  }
+}
+
 int CrossPointSettings::getReaderFontId() const {
   switch (fontFamily) {
     case BOOKERLY:

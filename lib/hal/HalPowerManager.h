@@ -29,9 +29,12 @@ class HalPowerManager {
   // Control CPU frequency for power saving
   void setPowerSaving(bool enabled);
 
-  // Setup wake up GPIO and enter deep sleep
+  // Setup wake up sources and enter deep sleep.
+  // timerIntervalUs: if > 0, also arms the RTC timer wakeup with this interval (in microseconds).
+  //   Timer wakeup is only functional when the device is powered via USB; on battery the MCU is
+  //   completely powered off (including RTC) so only the GPIO power-button wakeup applies.
   // Should be called inside main loop() to handle the currentLockMode
-  void startDeepSleep(HalGPIO& gpio) const;
+  void startDeepSleep(HalGPIO& gpio, uint64_t timerIntervalUs = 0) const;
 
   // Get battery percentage (range 0-100)
   uint16_t getBatteryPercentage() const;
