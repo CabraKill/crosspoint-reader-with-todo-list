@@ -168,7 +168,7 @@ void verifyPowerButtonDuration() {
   if (abort) {
     // Button released too early. Returning to sleep.
     // IMPORTANT: Re-arm the wakeup trigger before sleeping again
-    powerManager.startDeepSleep(gpio);
+    powerManager.startDeepSleep(gpio, SETTINGS.getScheduledWakeupIntervalUs());
   }
 }
 
@@ -192,7 +192,7 @@ void enterDeepSleep() {
   LOG_DBG("MAIN", "Power button press calibration value: %lu ms", t2 - t1);
   LOG_DBG("MAIN", "Entering deep sleep");
 
-  powerManager.startDeepSleep(gpio);
+  powerManager.startDeepSleep(gpio, SETTINGS.getScheduledWakeupIntervalUs());
 }
 
 void setupDisplayAndFonts() {
@@ -273,6 +273,11 @@ void setup() {
       // If USB power caused a cold boot, go back to sleep
       LOG_DBG("MAIN", "Wakeup reason: After USB Power");
       powerManager.startDeepSleep(gpio);
+      break;
+    case HalGPIO::WakeupReason::Timer:
+      // Woken by the scheduled timer: proceed to normal boot so the device is ready for use.
+      // If the user does not interact, the auto-sleep timeout will put it back to sleep.
+      LOG_DBG("MAIN", "Wakeup reason: Scheduled timer");
       break;
     case HalGPIO::WakeupReason::AfterFlash:
       // After flashing, just proceed to boot

@@ -1,5 +1,6 @@
 #include <HalGPIO.h>
 #include <SPI.h>
+#include <esp_sleep.h>
 
 void HalGPIO::begin() {
   inputMgr.begin();
@@ -47,6 +48,9 @@ HalGPIO::WakeupReason HalGPIO::getWakeupReason() const {
   }
   if (wakeupCause == ESP_SLEEP_WAKEUP_UNDEFINED && resetReason == ESP_RST_POWERON && usbConnected) {
     return WakeupReason::AfterUSBPower;
+  }
+  if (wakeupCause == ESP_SLEEP_WAKEUP_TIMER && resetReason == ESP_RST_DEEPSLEEP) {
+    return WakeupReason::Timer;
   }
   return WakeupReason::Other;
 }

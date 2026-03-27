@@ -78,6 +78,9 @@ inline const std::vector<SettingInfo>& getSettingsList() {
       SettingInfo::Enum(StrId::STR_TIME_TO_SLEEP, &CrossPointSettings::sleepTimeout,
                         {StrId::STR_MIN_1, StrId::STR_MIN_5, StrId::STR_MIN_10, StrId::STR_MIN_15, StrId::STR_MIN_30},
                         "sleepTimeout", StrId::STR_CAT_SYSTEM),
+      SettingInfo::Enum(StrId::STR_SCHEDULED_WAKEUP, &CrossPointSettings::scheduledWakeup,
+                        {StrId::STR_NEVER, StrId::STR_MIN_30, StrId::STR_HOUR_1, StrId::STR_HOUR_2, StrId::STR_HOUR_4},
+                        "scheduledWakeup", StrId::STR_CAT_SYSTEM),
       SettingInfo::Toggle(StrId::STR_SHOW_HIDDEN_FILES, &CrossPointSettings::showHiddenFiles, "showHiddenFiles",
                           StrId::STR_CAT_SYSTEM),
 

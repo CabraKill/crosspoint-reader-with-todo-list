@@ -192,6 +192,8 @@ The Settings screen allows you to configure the device's behavior. There are a f
 
 - **Time to Sleep**: Set the duration of inactivity before the device automatically goes to sleep; options are 1, 5, 10 (default), 15 or 30 minutes.
 
+- **Scheduled Wake-up**: Configure the device to wake up periodically at a fixed interval after it has entered deep sleep. Options are Never (default), 30 minutes, 1 hour, 2 hours, or 4 hours. When the timer fires the device boots normally; if not interacted with, it returns to sleep after the *Time to Sleep* timeout. **Note:** this feature is only functional when the device is powered via USB. On battery, the MCU is completely powered off during deep sleep (including the RTC timer) so only the physical power button can wake the device.
+
 - **WiFi Networks**: Connect to WiFi networks for file transfers and firmware updates.
 - **KOReader Sync**: Options for setting up KOReader for syncing book progress.
 - **OPDS Browser**: Configure OPDS server settings for browsing and downloading books. Set the server URL (for Calibre Content Server, add `/opds` to the end), and optionally configure username and password for servers requiring authentication. Note: Only HTTP Basic authentication is supported. If using Calibre Content Server with authentication enabled, you must set it to use Basic authentication instead of the default Digest authentication.
