@@ -8,8 +8,12 @@
 #include <Txt.h>
 #include <Xtc.h>
 
+#include <cstdio>
+#include <vector>
+
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
+#include "activities/todo/TodoListActivity.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "images/Logo120.h"
@@ -26,6 +30,8 @@ void SleepActivity::onEnter() {
     case (CrossPointSettings::SLEEP_SCREEN_MODE::COVER):
     case (CrossPointSettings::SLEEP_SCREEN_MODE::COVER_CUSTOM):
       return renderCoverSleepScreen();
+    case (CrossPointSettings::SLEEP_SCREEN_MODE::TODO):
+      return renderTodoSleepScreen();
     default:
       return renderDefaultSleepScreen();
   }
@@ -292,5 +298,48 @@ void SleepActivity::renderCoverSleepScreen() const {
 
 void SleepActivity::renderBlankSleepScreen() const {
   renderer.clearScreen();
+  renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+}
+
+void SleepActivity::renderTodoSleepScreen() const {
+  const auto pageWidth = renderer.getScreenWidth();
+  const auto pageHeight = renderer.getScreenHeight();
+  const auto& metrics = UITheme::getInstance().getMetrics();
+
+  renderer.clearScreen();
+
+  // Title
+  const int titleY = metrics.topPadding + metrics.verticalSpacing;
+  renderer.drawCenteredText(UI_12_FONT_ID, titleY, tr(STR_TODO_LIST), true, EpdFontFamily::BOLD);
+
+  // Separator line under title
+  const int sepY = titleY + renderer.getLineHeight(UI_12_FONT_ID) + metrics.verticalSpacing / 2;
+  renderer.drawLine(metrics.contentSidePadding, sepY, pageWidth - metrics.contentSidePadding, sepY);
+
+  // Load todo items
+  std::vector<TodoItem> todos;
+  TodoListActivity::loadTodos(todos);
+
+  // Draw items
+  constexpr int itemRowHeight = 28;
+  const int startY = sepY + metrics.verticalSpacing;
+  const int maxY = pageHeight - metrics.verticalSpacing;
+
+  for (int i = 0; i < static_cast<int>(todos.size()); ++i) {
+    const int rowY = startY + i * itemRowHeight;
+    if (rowY + itemRowHeight > maxY) {
+      break;
+    }
+
+    const char* checkbox = todos[i].done ? "[x]" : "[  ]";
+    const int checkW = renderer.getTextWidth(UI_10_FONT_ID, checkbox);
+    renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, rowY, checkbox);
+
+    const int nameX = metrics.contentSidePadding + checkW + 6;
+    const int nameMaxW = pageWidth - nameX - metrics.contentSidePadding;
+    const auto truncated = renderer.truncatedText(UI_10_FONT_ID, todos[i].name.c_str(), nameMaxW);
+    renderer.drawText(UI_10_FONT_ID, nameX, rowY, truncated.c_str());
+  }
+
   renderer.displayBuffer(HalDisplay::HALF_REFRESH);
 }

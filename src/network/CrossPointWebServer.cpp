@@ -16,6 +16,7 @@
 #include "html/FilesPageHtml.generated.h"
 #include "html/HomePageHtml.generated.h"
 #include "html/SettingsPageHtml.generated.h"
+#include "html/TodoPageHtml.generated.h"
 #include "html/js/jszip_minJs.generated.h"
 
 namespace {
@@ -159,6 +160,11 @@ void CrossPointWebServer::begin() {
   server->on("/settings", HTTP_GET, [this] { handleSettingsPage(); });
   server->on("/api/settings", HTTP_GET, [this] { handleGetSettings(); });
   server->on("/api/settings", HTTP_POST, [this] { handlePostSettings(); });
+
+  // Todo endpoints
+  server->on("/todo", HTTP_GET, [this] { handleTodoPage(); });
+  server->on("/api/todos", HTTP_GET, [this] { handleGetTodos(); });
+  server->on("/api/todos", HTTP_POST, [this] { handlePostTodos(); });
 
   server->onNotFound([this] { handleNotFound(); });
   LOG_DBG("WEB", "[MEM] Free heap after route setup: %d bytes", ESP.getFreeHeap());
@@ -1226,6 +1232,103 @@ void CrossPointWebServer::handlePostSettings() {
 
   LOG_DBG("WEB", "Applied %d setting(s)", applied);
   server->send(200, "text/plain", String("Applied ") + String(applied) + " setting(s)");
+}
+
+void CrossPointWebServer::handleTodoPage() const {
+  sendHtmlContent(server.get(), TodoPageHtml, sizeof(TodoPageHtml));
+  LOG_DBG("WEB", "Served todo page");
+}
+
+void CrossPointWebServer::handleGetTodos() const {
+  FsFile file;
+  const bool opened = Storage.openFileForRead("TODO", "/.crosspoint/todos.txt", file);
+
+  server->setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server->send(200, "application/json", "");
+  server->sendContent("[");
+
+  if (opened) {
+    char lineBuf[256];
+    bool seenFirst = false;
+    while (file.available()) {
+      int len = 0;
+      while (file.available() && len < static_cast<int>(sizeof(lineBuf)) - 1) {
+        char c = static_cast<char>(file.read());
+        if (c == '\n') break;
+        if (c != '\r') lineBuf[len++] = c;
+      }
+      lineBuf[len] = '\0';
+      if (len == 0) continue;
+
+      char* sep = strchr(lineBuf, '|');
+      if (!sep) continue;
+      *sep = '\0';
+      const bool done = (sep[1] == '1');
+
+      JsonDocument doc;
+      doc["name"] = lineBuf;
+      doc["done"] = done;
+      // lineBuf is up to 255 chars; JSON overhead for name/done keys/values is ~25 chars
+      // plus potential JSON string escaping — 320 bytes is sufficient
+      char buf[320];
+      serializeJson(doc, buf, sizeof(buf));
+
+      if (seenFirst) server->sendContent(",");
+      seenFirst = true;
+      server->sendContent(buf);
+    }
+    file.close();
+  }
+
+  server->sendContent("]");
+  server->sendContent("");
+  LOG_DBG("WEB", "Served todos API");
+}
+
+void CrossPointWebServer::handlePostTodos() {
+  if (!server->hasArg("plain")) {
+    server->send(400, "text/plain", "Missing body");
+    return;
+  }
+
+  const String body = server->arg("plain");
+  JsonDocument doc;
+  if (deserializeJson(doc, body) != DeserializationError::Ok || !doc.is<JsonArray>()) {
+    server->send(400, "text/plain", "Invalid JSON");
+    return;
+  }
+
+  String content;
+  const JsonArray arr = doc.as<JsonArray>();
+  // Limit to prevent OOM from excessively large payloads
+  constexpr int MAX_TODOS = 200;
+  if (static_cast<int>(arr.size()) > MAX_TODOS) {
+    server->send(400, "text/plain", "Too many items");
+    return;
+  }
+  // Reserve ~50 bytes per item to avoid repeated heap reallocations
+  content.reserve(arr.size() * 50);
+  for (const JsonObject obj : arr) {
+    const char* name = obj["name"] | "";
+    const bool done = obj["done"] | false;
+    // Strip '|' and newlines to preserve the name|done file format
+    for (const char* p = name; *p; ++p) {
+      // cppcheck-suppress useStlAlgorithm
+      if (*p != '|' && *p != '\n' && *p != '\r') content += *p;
+    }
+    content += '|';
+    content += (done ? '1' : '0');
+    content += '\n';
+  }
+
+  Storage.ensureDirectoryExists("/.crosspoint");
+  if (Storage.writeFile("/.crosspoint/todos.txt", content)) {
+    LOG_DBG("WEB", "Saved %d todo(s)", static_cast<int>(arr.size()));
+    server->send(200, "text/plain", "Saved");
+  } else {
+    LOG_ERR("WEB", "Failed to save todos");
+    server->send(500, "text/plain", "Failed to save");
+  }
 }
 
 // WebSocket callback trampoline

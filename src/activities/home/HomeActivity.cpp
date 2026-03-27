@@ -20,7 +20,7 @@
 #include "fontIds.h"
 
 int HomeActivity::getMenuItemCount() const {
-  int count = 4;  // File Browser, Recents, File transfer, Settings
+  int count = 5;  // File Browser, Recents, File transfer, Todo List, Settings (+ optional OPDS Library)
   if (!recentBooks.empty()) {
     count += recentBooks.size();
   }
@@ -192,6 +192,7 @@ void HomeActivity::loop() {
     const int recentsIdx = idx++;
     const int opdsLibraryIdx = hasOpdsUrl ? idx++ : -1;
     const int fileTransferIdx = idx++;
+    const int todoListIdx = idx++;
     const int settingsIdx = idx;
 
     if (selectorIndex < recentBooks.size()) {
@@ -204,6 +205,8 @@ void HomeActivity::loop() {
       onOpdsBrowserOpen();
     } else if (menuSelectedIndex == fileTransferIdx) {
       onFileTransferOpen();
+    } else if (menuSelectedIndex == todoListIdx) {
+      onTodoListOpen();
     } else if (menuSelectedIndex == settingsIdx) {
       onSettingsOpen();
     }
@@ -226,8 +229,8 @@ void HomeActivity::render(RenderLock&&) {
 
   // Build menu items dynamically
   std::vector<const char*> menuItems = {tr(STR_BROWSE_FILES), tr(STR_MENU_RECENT_BOOKS), tr(STR_FILE_TRANSFER),
-                                        tr(STR_SETTINGS_TITLE)};
-  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};
+                                        tr(STR_TODO_LIST), tr(STR_SETTINGS_TITLE)};
+  std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Todo, Settings};
 
   if (hasOpdsUrl) {
     // Insert OPDS Browser after File Browser
@@ -269,3 +272,5 @@ void HomeActivity::onSettingsOpen() { activityManager.goToSettings(); }
 void HomeActivity::onFileTransferOpen() { activityManager.goToFileTransfer(); }
 
 void HomeActivity::onOpdsBrowserOpen() { activityManager.goToBrowser(); }
+
+void HomeActivity::onTodoListOpen() { activityManager.goToTodoList(); }

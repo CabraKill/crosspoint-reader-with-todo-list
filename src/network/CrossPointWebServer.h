@@ -107,4 +107,9 @@ class CrossPointWebServer {
   void handleSettingsPage() const;
   void handleGetSettings() const;
   void handlePostSettings();
+
+  // Todo handlers
+  void handleTodoPage() const;
+  void handleGetTodos() const;
+  void handlePostTodos();
 };
