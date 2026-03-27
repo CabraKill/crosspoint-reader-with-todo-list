@@ -199,9 +199,7 @@ void ActivityManager::goToFullScreenMessage(std::string message, EpdFontFamily::
 
 void ActivityManager::goHome() { replaceActivity(std::make_unique<HomeActivity>(renderer, mappedInput)); }
 
-void ActivityManager::goToTodoList() {
-  replaceActivity(std::make_unique<TodoListActivity>(renderer, mappedInput));
-}
+void ActivityManager::goToTodoList() { replaceActivity(std::make_unique<TodoListActivity>(renderer, mappedInput)); }
 
 void ActivityManager::pushActivity(std::unique_ptr<Activity>&& activity) {
   if (pendingActivity) {

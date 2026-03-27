@@ -143,8 +143,7 @@ void TodoListActivity::render(RenderLock&&) {
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, tr(STR_TODO_LIST), nullptr);
 
   const int contentY = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing;
-  const int contentHeight =
-      pageHeight - contentY - metrics.buttonHintsHeight - metrics.verticalSpacing;
+  const int contentHeight = pageHeight - contentY - metrics.buttonHintsHeight - metrics.verticalSpacing;
 
   // Row heights
   constexpr int qrRowHeight = 48;
