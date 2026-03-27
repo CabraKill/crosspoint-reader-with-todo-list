@@ -3,22 +3,17 @@
 #include <GfxRenderer.h>
 #include <HalStorage.h>
 #include <I18n.h>
-#include <WiFi.h>
 
 #include <cstdio>
 #include <cstring>
 
 #include "MappedInputManager.h"
-#include "activities/reader/QrDisplayActivity.h"
 #include "components/UITheme.h"
-#include "components/icons/todo.h"
 #include "fontIds.h"
 
 namespace {
 // Todo list file path on SD card
 constexpr char TODO_FILE_PATH[] = "/.crosspoint/todos.txt";
-// Icon size for the QR icon button
-constexpr int QR_ICON_SIZE = 32;
 // Padding used when drawing items
 constexpr int ITEM_SIDE_PADDING = 20;
 }  // namespace
@@ -91,8 +86,7 @@ bool TodoListActivity::saveTodos(const std::vector<TodoItem>& todos) {
 }
 
 int TodoListActivity::getTotalItems() const {
-  // 1 for QR icon row + number of todo items
-  return 1 + static_cast<int>(todos.size());
+  return static_cast<int>(todos.size());
 }
 
 void TodoListActivity::onEnter() {
@@ -127,38 +121,12 @@ void TodoListActivity::loop() {
   }
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    if (selectorIndex == 0) {
-      onShowQrCode();
-    } else {
-      const int todoIdx = selectorIndex - 1;
-      if (todoIdx < static_cast<int>(todos.size())) {
-        todos[todoIdx].done = !todos[todoIdx].done;
-        saveTodos(todos);
-        requestUpdate();
-      }
+    if (selectorIndex < static_cast<int>(todos.size())) {
+      todos[selectorIndex].done = !todos[selectorIndex].done;
+      saveTodos(todos);
+      requestUpdate();
     }
   }
-}
-
-void TodoListActivity::onShowQrCode() {
-  char ipStr[16] = "0.0.0.0";
-  if (WiFi.status() == WL_CONNECTED) {
-    const IPAddress ip = WiFi.localIP();
-    snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-  } else if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
-    const IPAddress ip = WiFi.softAPIP();
-    snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-  }
-
-  // URL format: "http://xxx.xxx.xxx.xxx/todo" — max 28 bytes, 64 is ample
-  char url[64];
-  snprintf(url, sizeof(url), "http://%s/todo", ipStr);
-
-  startActivityForResult(std::make_unique<QrDisplayActivity>(renderer, mappedInput, std::string(url)),
-                         [this](const ActivityResult&) {
-                           loadTodos(todos);  // Reload in case web edits were made
-                           requestUpdate();
-                         });
 }
 
 void TodoListActivity::render(RenderLock&&) {
@@ -175,38 +143,13 @@ void TodoListActivity::render(RenderLock&&) {
   const int contentHeight = pageHeight - contentY - metrics.buttonHintsHeight - metrics.verticalSpacing;
 
   // Row heights
-  constexpr int qrRowHeight = 48;
   constexpr int itemRowHeight = 36;
   constexpr int rowSpacing = 4;
 
-  // --- Draw QR icon row (index 0) ---
-  {
-    const bool selected = (selectorIndex == 0);
-    const int rowY = contentY;
-    const int rowX = ITEM_SIDE_PADDING;
-    const int rowW = pageWidth - ITEM_SIDE_PADDING * 2;
-
-    if (selected) {
-      renderer.fillRect(rowX, rowY, rowW, qrRowHeight);
-    } else {
-      renderer.drawRect(rowX, rowY, rowW, qrRowHeight);
-    }
-
-    // Draw the todo icon centered vertically in the row
-    const int iconY = rowY + (qrRowHeight - QR_ICON_SIZE) / 2;
-    renderer.drawIcon(TodoIcon, rowX + 8, iconY, QR_ICON_SIZE, QR_ICON_SIZE);
-
-    // QR hint text
-    const char* hint = tr(STR_SHOW_QR_CODE);
-    const int textY = rowY + (qrRowHeight - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
-    renderer.drawText(UI_10_FONT_ID, rowX + QR_ICON_SIZE + 16, textY, hint, !selected);
-  }
-
   // --- Draw todo items ---
   for (int i = 0; i < static_cast<int>(todos.size()); ++i) {
-    const int itemIdx = i + 1;  // index 0 is QR icon
-    const bool selected = (selectorIndex == itemIdx);
-    const int rowY = contentY + qrRowHeight + rowSpacing + i * (itemRowHeight + rowSpacing);
+    const bool selected = (selectorIndex == i);
+    const int rowY = contentY + i * (itemRowHeight + rowSpacing);
 
     if (rowY + itemRowHeight > contentY + contentHeight) {
       break;  // No more vertical space
